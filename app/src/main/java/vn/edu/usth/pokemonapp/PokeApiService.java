@@ -8,6 +8,7 @@ import retrofit2.http.Query;
 import retrofit2.http.Url;
 
 public interface PokeApiService {
+
     @GET("pokemon/{name}")
     Call<JsonObject> getPokemon(@Path("name") String name);
 
@@ -19,4 +20,7 @@ public interface PokeApiService {
 
     @GET("pokemon")
     Call<JsonObject> getPokemonList(@Query("limit") int limit, @Query("offset") int offset);
+
+    @GET("type/{name}")
+    Call<JsonObject> getPokemonByType(@Path("name") String name);
 }

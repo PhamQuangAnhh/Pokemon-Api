@@ -62,49 +62,76 @@ public class PokemonRepository {
         });
     }
 
-    public void fetchPokemonDetails(String pokemonName, final PokemonCallback callback) {
-        apiService.getPokemon(pokemonName).enqueue(new Callback<JsonObject>() {
+    public void fetchPokemonByType(String typeName, final PokemonListCallback callback) {
+        apiService.getPokemonByType(typeName.toLowerCase()).enqueue(new Callback<JsonObject>() {
             @Override
-            public void onResponse(Call<JsonObject> call, Response<JsonObject> pokemonResponse) {
-                if (!pokemonResponse.isSuccessful() || pokemonResponse.body() == null) {
-                    String errorMsg = "Lỗi khi lấy dữ liệu Pokemon: " + pokemonResponse.code() + " " + pokemonResponse.message();
-                    Log.e(TAG, errorMsg);
-                    callback.onFailure(errorMsg);
+            public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onFailure("Could not find type: " + typeName);
                     return;
                 }
-                JsonObject pokemonData = pokemonResponse.body();
-                apiService.getPokemonSpecies(pokemonName).enqueue(new Callback<JsonObject>() {
-                    @Override
-                    public void onResponse(Call<JsonObject> call, Response<JsonObject> speciesResponse) {
-                        if (!speciesResponse.isSuccessful() || speciesResponse.body() == null) {
-                            String errorMsg = "Lỗi khi lấy dữ liệu loài Pokemon: " + speciesResponse.message();
-                            Log.e(TAG, errorMsg);
-                            callback.onFailure(errorMsg);
-                            return;
-                        }
-                        JsonObject speciesData = speciesResponse.body();
-                        String evolutionChainUrl = speciesData.getAsJsonObject("evolution_chain").get("url").getAsString();
-                        fetchEvolutionChain(evolutionChainUrl, (evolutionSteps) -> {
-                            Pokemon pokemon = processPokemonData(pokemonData, speciesData, evolutionSteps);
-                            callback.onSuccess(pokemon);
-                        });
-                    }
-                    @Override
-                    public void onFailure(Call<JsonObject> call, Throwable t) {
-                        Log.e(TAG, "Thất bại khi gọi API loài: ", t);
-                        callback.onFailure(t.getMessage());
-                    }
-                });
+                List<PokemonListItem> list = new ArrayList<>();
+                JsonArray pokemonArray = response.body().getAsJsonArray("pokemon");
+                for (JsonElement element : pokemonArray) {
+                    JsonObject pokemonObj = element.getAsJsonObject().getAsJsonObject("pokemon");
+                    PokemonListItem item = new PokemonListItem();
+                    item.name = pokemonObj.get("name").getAsString();
+                    item.url = pokemonObj.get("url").getAsString();
+                    list.add(item);
+                }
+                callback.onSuccess(list);
             }
+
             @Override
             public void onFailure(Call<JsonObject> call, Throwable t) {
-                Log.e(TAG, "Thất bại khi gọi API Pokemon: ", t);
                 callback.onFailure(t.getMessage());
             }
         });
     }
 
-    // --- HÀM NÀY ĐÃ ĐƯỢC CẬP NHẬT ---
+    public void fetchPokemonDetails(String pokemonName, final PokemonCallback callback) {
+        apiService.getPokemon(pokemonName).enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(Call<JsonObject> call, Response<JsonObject> pokemonResponse) {
+                if (!pokemonResponse.isSuccessful() || pokemonResponse.body() == null) {
+                    callback.onFailure("Failed to get Pokemon data for " + pokemonName);
+                    return;
+                }
+                JsonObject pokemonData = pokemonResponse.body();
+
+                apiService.getPokemonSpecies(pokemonName).enqueue(new Callback<JsonObject>() {
+                    @Override
+                    public void onResponse(Call<JsonObject> call, Response<JsonObject> speciesResponse) {
+                        JsonObject speciesData = (speciesResponse.isSuccessful()) ? speciesResponse.body() : null;
+
+                        if (speciesData != null && speciesData.has("evolution_chain") && !speciesData.get("evolution_chain").isJsonNull()) {
+                            String evolutionChainUrl = speciesData.getAsJsonObject("evolution_chain").get("url").getAsString();
+                            fetchEvolutionChain(evolutionChainUrl, evolutionSteps -> {
+                                Pokemon pokemon = processPokemonData(pokemonData, speciesData, evolutionSteps);
+                                callback.onSuccess(pokemon);
+                            });
+                        } else {
+                            Pokemon pokemon = processPokemonData(pokemonData, speciesData, new ArrayList<>());
+                            callback.onSuccess(pokemon);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<JsonObject> call, Throwable t) {
+                        Log.e(TAG, "Failed to get species data, continuing without it.", t);
+                        Pokemon pokemon = processPokemonData(pokemonResponse.body(), null, new ArrayList<>());
+                        callback.onSuccess(pokemon);
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Call<JsonObject> call, Throwable t) {
+                callback.onFailure(t.getMessage());
+            }
+        });
+    }
+
     private Pokemon processPokemonData(JsonObject pokemonData, JsonObject speciesData, List<EvolutionStep> evolutions) {
         String name = pokemonData.get("name").getAsString();
         String imageUrl = pokemonData.getAsJsonObject("sprites").getAsJsonObject("other").getAsJsonObject("official-artwork").get("front_default").getAsString();
@@ -125,21 +152,19 @@ public class PokemonRepository {
             types.add(typeEl.getAsJsonObject().getAsJsonObject("type").get("name").getAsString());
         }
 
-        // Trích xuất mô tả từ speciesData
         String description = "No description available.";
-        JsonArray flavorTexts = speciesData.getAsJsonArray("flavor_text_entries");
-        for (JsonElement textEl : flavorTexts) {
-            JsonObject textObj = textEl.getAsJsonObject();
-            if (textObj.getAsJsonObject("language").get("name").getAsString().equals("en")) {
-                description = textObj.get("flavor_text").getAsString().replace('\n', ' ').replace('\f', ' ');
-                break; // Dừng lại khi tìm thấy mô tả tiếng Anh đầu tiên
+        if (speciesData != null && speciesData.has("flavor_text_entries")) {
+            JsonArray flavorTexts = speciesData.getAsJsonArray("flavor_text_entries");
+            for (JsonElement textEl : flavorTexts) {
+                JsonObject textObj = textEl.getAsJsonObject();
+                if (textObj.getAsJsonObject("language").get("name").getAsString().equals("en")) {
+                    description = textObj.get("flavor_text").getAsString().replace('\n', ' ').replace('\f', ' ');
+                    break;
+                }
             }
         }
-
-        // Truyền description vào constructor của Pokemon
         return new Pokemon(name, imageUrl, hp, attack, defense, speed, types, description, evolutions);
     }
-    // ------------------------------------
 
     private interface EvolutionChainCallback {
         void onComplete(List<EvolutionStep> steps);
@@ -150,7 +175,6 @@ public class PokemonRepository {
             @Override
             public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    Log.e(TAG, "Lỗi khi lấy chuỗi tiến hóa: " + response.message());
                     callback.onComplete(new ArrayList<>());
                     return;
                 }
@@ -159,7 +183,6 @@ public class PokemonRepository {
             }
             @Override
             public void onFailure(Call<JsonObject> call, Throwable t) {
-                Log.e(TAG, "Thất bại khi gọi API chuỗi tiến hóa: ", t);
                 callback.onComplete(new ArrayList<>());
             }
         });
@@ -168,12 +191,15 @@ public class PokemonRepository {
     private void parseEvolutionChain(JsonObject chain, List<EvolutionStep> steps, EvolutionChainCallback finalCallback) {
         if (chain == null) return;
         String name = chain.getAsJsonObject("species").get("name").getAsString();
+
         apiService.getPokemon(name).enqueue(new Callback<JsonObject>() {
             @Override
             public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    String imageUrl = response.body().getAsJsonObject("sprites").get("front_default").getAsString();
-                    steps.add(new EvolutionStep(name, imageUrl));
+                    if (response.body().has("sprites") && !response.body().get("sprites").isJsonNull()) {
+                        String imageUrl = response.body().getAsJsonObject("sprites").get("front_default").getAsString();
+                        steps.add(new EvolutionStep(name, imageUrl));
+                    }
                 }
                 JsonArray evolvesToArray = chain.getAsJsonArray("evolves_to");
                 if (evolvesToArray.size() > 0) {
@@ -184,7 +210,7 @@ public class PokemonRepository {
             }
             @Override
             public void onFailure(Call<JsonObject> call, Throwable t) {
-                Log.e(TAG, "Thất bại khi lấy ảnh sprite cho " + name, t);
+                Log.e(TAG, "Failed to get sprite for evolution: " + name, t);
                 finalCallback.onComplete(steps);
             }
         });

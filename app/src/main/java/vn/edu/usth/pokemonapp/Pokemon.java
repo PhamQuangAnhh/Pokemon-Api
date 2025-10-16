@@ -1,9 +1,9 @@
 package vn.edu.usth.pokemonapp;
 
-import java.io.Serializable; // THÊM IMPORT NÀY
+import java.io.Serializable;
 import java.util.List;
 
-public class Pokemon implements Serializable { // THÊM "implements Serializable"
+public class Pokemon implements Serializable {
     public String name;
     public String imageUrl;
     public int hp;
@@ -12,8 +12,6 @@ public class Pokemon implements Serializable { // THÊM "implements Serializable
     public int speed;
     public List<String> types;
     public String description;
-
-    // LƯU Ý: Chúng ta sẽ truyền cả danh sách tiến hóa
     public List<EvolutionStep> evolutions;
 
     public Pokemon(String name, String imageUrl, int hp, int attack, int defense, int speed, List<String> types, String description, List<EvolutionStep> evolutions) {

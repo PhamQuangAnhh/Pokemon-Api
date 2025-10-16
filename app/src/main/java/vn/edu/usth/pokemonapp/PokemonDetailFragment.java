@@ -1,5 +1,6 @@
 package vn.edu.usth.pokemonapp;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,20 +15,17 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.bumptech.glide.Glide;
 import java.util.ArrayList;
-import java.util.Locale;
 
 public class PokemonDetailFragment extends Fragment {
 
     private static final String ARG_POKEMON_NAME = "pokemon_name";
     private String pokemonName;
-
     private PokemonDetailViewModel detailViewModel;
+    private Pokemon currentPokemonData;
 
     private ImageView pokemonImageView;
     private TextView pokemonNameTextView, hpTextView, attackTextView, defenseTextView, speedTextView, typeTextView, descriptionTextView;
     private ProgressBar progressBar;
-
-    private Pokemon currentPokemonData;
 
     public static PokemonDetailFragment newInstance(String pokemonName) {
         PokemonDetailFragment fragment = new PokemonDetailFragment();
@@ -72,17 +70,13 @@ public class PokemonDetailFragment extends Fragment {
         descriptionTextView = view.findViewById(R.id.descriptionTextView);
         progressBar = view.findViewById(R.id.progressBar);
 
-        // --- LOGIC MỚI: HIỂN THỊ BOTTOM SHEET KHI NHẤN VÀO ẢNH ---
         pokemonImageView.setOnClickListener(v -> {
             if (currentPokemonData != null && currentPokemonData.evolutions != null && !currentPokemonData.evolutions.isEmpty()) {
-
                 ArrayList<String> evolutionNames = new ArrayList<>();
                 for (EvolutionStep step : currentPokemonData.evolutions) {
                     evolutionNames.add(step.name);
                 }
-
                 EvolutionBottomSheetFragment bottomSheet = EvolutionBottomSheetFragment.newInstance(evolutionNames, capitalize(currentPokemonData.name));
-                // Hiển thị Bottom Sheet thông qua trình quản lý Fragment của Fragment cha
                 bottomSheet.show(getParentFragmentManager(), "EvolutionBottomSheetFragment");
 
             } else {
@@ -104,13 +98,14 @@ public class PokemonDetailFragment extends Fragment {
 
     private void updateUi(Pokemon pokemon) {
         pokemonNameTextView.setText(capitalize(pokemon.name));
-        hpTextView.setText(String.format(Locale.US, "HP: %d", pokemon.hp));
-        attackTextView.setText(String.format(Locale.US, "Attack: %d", pokemon.attack));
-        defenseTextView.setText(String.format(Locale.US, "Defense: %d", pokemon.defense));
-        speedTextView.setText(String.format(Locale.US, "Speed: %d", pokemon.speed));
-        typeTextView.setText("Type: " + capitalize(String.join(" / ", pokemon.types)));
+        typeTextView.setText(capitalize(String.join(" / ", pokemon.types)));
         descriptionTextView.setText(pokemon.description);
         Glide.with(this).load(pokemon.imageUrl).into(pokemonImageView);
+
+        hpTextView.setText(String.valueOf(pokemon.hp));
+        attackTextView.setText(String.valueOf(pokemon.attack));
+        defenseTextView.setText(String.valueOf(pokemon.defense));
+        speedTextView.setText(String.valueOf(pokemon.speed));
     }
 
     private String capitalize(String str) {
