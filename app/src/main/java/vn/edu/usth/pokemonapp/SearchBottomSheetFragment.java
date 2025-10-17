@@ -46,14 +46,14 @@ public class SearchBottomSheetFragment extends BottomSheetDialogFragment {
         searchResultsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         searchResultsRecyclerView.setAdapter(adapter);
 
-        // Lắng nghe kết quả tìm kiếm theo tên từ ViewModel
+        // Observe search results from the ViewModel
         viewModel.searchResults.observe(getViewLifecycleOwner(), results -> {
             if (results != null) {
                 adapter.updateData(results);
             }
         });
 
-        // Lắng nghe sự kiện gõ chữ để tìm kiếm theo tên real-time
+        // Listen for text changes to perform real-time search by name
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -65,7 +65,7 @@ public class SearchBottomSheetFragment extends BottomSheetDialogFragment {
             public void afterTextChanged(Editable s) {}
         });
 
-        // Lắng nghe sự kiện nhấn "Search" trên bàn phím để tìm theo HỆ
+        // Listen for the "Search" action on the keyboard to search by TYPE
         searchEditText.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 String query = searchEditText.getText().toString();
@@ -76,7 +76,7 @@ public class SearchBottomSheetFragment extends BottomSheetDialogFragment {
             return false;
         });
 
-        // Lắng nghe sự kiện nhấn nút Reset
+        // Listen for the Reset button click event
         resetSearchButton.setOnClickListener(v -> {
             viewModel.resetSearch();
             dismiss();

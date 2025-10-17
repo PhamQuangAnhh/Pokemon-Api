@@ -10,23 +10,23 @@ public class PokemonDetailViewModel extends ViewModel {
 
     private final PokemonRepository repository = new PokemonRepository();
 
-    // "Kho chứa" (cache) dữ liệu Pokémon. Key là tên Pokémon, Value là LiveData chứa thông tin chi tiết.
+    // Cache for Pokémon data. Key is the Pokémon name, Value is LiveData containing detailed info.
     private final Map<String, MutableLiveData<Pokemon>> pokemonCache = new HashMap<>();
 
-    // LiveData để thông báo lỗi
+    // LiveData for error messages
     private final MutableLiveData<String> _error = new MutableLiveData<>();
     public LiveData<String> error = _error;
 
-    // Hàm chính mà Fragment sẽ gọi để lấy dữ liệu
+    // Main function for the Fragment to call to get data
     public LiveData<Pokemon> getPokemonDetails(String pokemonName) {
         String name = pokemonName.toLowerCase();
 
-        // Nếu đã có trong kho, trả về ngay lập tức
+        // If it's already in the cache, return it immediately
         if (pokemonCache.containsKey(name)) {
             return pokemonCache.get(name);
         }
 
-        // Nếu chưa có, tạo LiveData mới, bắt đầu tải, và lưu vào kho
+        // If not, create new LiveData, start loading, and save to cache
         MutableLiveData<Pokemon> newPokemonData = new MutableLiveData<>();
         pokemonCache.put(name, newPokemonData);
 
@@ -35,26 +35,26 @@ public class PokemonDetailViewModel extends ViewModel {
         return newPokemonData;
     }
 
-    // Hàm để MainActivity gọi và tải trước dữ liệu
+    // Function for MainActivity to call and preload data
     public void preloadPokemon(String pokemonName) {
-        // Chỉ tải nếu chưa có trong kho
+        // Only load if it's not already in the cache
         if (!pokemonCache.containsKey(pokemonName.toLowerCase())) {
             getPokemonDetails(pokemonName);
         }
     }
 
-    // Hàm nội bộ để thực hiện việc gọi API
+    // Internal function to make the API call
     private void loadDataFor(String name, MutableLiveData<Pokemon> liveData) {
         repository.fetchPokemonDetails(name, new PokemonRepository.PokemonCallback() {
             @Override
             public void onSuccess(Pokemon pokemon) {
-                // Đặt giá trị vào LiveData khi thành công
+                // Set the value in LiveData on success
                 liveData.postValue(pokemon);
             }
 
             @Override
             public void onFailure(String message) {
-                // Gửi lỗi
+                // Send the error
                 _error.postValue("Failed to load " + name + ": " + message);
             }
         });

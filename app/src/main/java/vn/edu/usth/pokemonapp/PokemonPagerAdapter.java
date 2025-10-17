@@ -19,15 +19,15 @@ public class PokemonPagerAdapter extends FragmentStateAdapter {
     @NonNull
     @Override
     public Fragment createFragment(int position) {
-        // Với mỗi vị trí trong ViewPager, tạo một Fragment mới
-        // và truyền tên của Pokémon tương ứng vào đó.
+        // For each position in the ViewPager, create a new Fragment
+        // and pass the name of the corresponding Pokémon into it.
         PokemonListItem currentPokemon = pokemonList.get(position);
         return PokemonDetailFragment.newInstance(currentPokemon.name);
     }
 
     @Override
     public int getItemCount() {
-        // ViewPager sẽ có số trang bằng số Pokémon trong danh sách.
+        // The ViewPager will have the same number of pages as the number of Pokémon in the list.
         return pokemonList.size();
     }
 }

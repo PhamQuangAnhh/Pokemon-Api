@@ -14,15 +14,15 @@ public class PokemonListViewModel extends ViewModel {
     private final PokemonRepository repository = new PokemonRepository();
     private List<PokemonListItem> originalMasterList = new ArrayList<>();
 
-    // Danh sách hiển thị trên ViewPager
+    // The list displayed on the ViewPager
     private final MutableLiveData<List<PokemonListItem>> _displayedPokemonList = new MutableLiveData<>();
     public LiveData<List<PokemonListItem>> displayedPokemonList = _displayedPokemonList;
 
-    // LiveData chứa kết quả tìm kiếm cho Bottom Sheet (ĐÃ ĐƯỢC THÊM LẠI)
+    // LiveData containing search results for the Bottom Sheet
     private final MutableLiveData<List<PokemonListItem>> _searchResults = new MutableLiveData<>();
     public LiveData<List<PokemonListItem>> searchResults = _searchResults;
 
-    // LiveData để điều hướng
+    // LiveData for navigation
     private final MutableLiveData<PokemonListItem> _navigateToPokemon = new MutableLiveData<>();
     public LiveData<PokemonListItem> navigateToPokemon = _navigateToPokemon;
 
@@ -41,7 +41,7 @@ public class PokemonListViewModel extends ViewModel {
     public void loadPokemonList() {
         if (!originalMasterList.isEmpty()) return;
         _isLoading.setValue(true);
-        repository.fetchPokemonList(151, 0, new PokemonRepository.PokemonListCallback() {
+        repository.fetchPokemonList(200, 0, new PokemonRepository.PokemonListCallback() {
             @Override
             public void onSuccess(List<PokemonListItem> fetchedList) {
                 originalMasterList = fetchedList;
@@ -56,7 +56,7 @@ public class PokemonListViewModel extends ViewModel {
         });
     }
 
-    // Hàm này được gọi MỖI KHI người dùng gõ chữ để lọc danh sách theo TÊN
+    // This function is called EVERY TIME the user types to filter the list by NAME
     public void search(String query) {
         String cleanedQuery = query.toLowerCase().trim();
 
@@ -74,7 +74,7 @@ public class PokemonListViewModel extends ViewModel {
         _searchResults.postValue(filteredList);
     }
 
-    // Hàm này được gọi khi người dùng nhấn ENTER để tìm kiếm theo HỆ
+    // This function is called when the user presses ENTER to search by TYPE
     public void executeTypeSearch(String query) {
         String cleanedQuery = query.toLowerCase().trim();
 
@@ -83,7 +83,7 @@ public class PokemonListViewModel extends ViewModel {
             repository.fetchPokemonByType(cleanedQuery, new PokemonRepository.PokemonListCallback() {
                 @Override
                 public void onSuccess(List<PokemonListItem> fetchedList) {
-                    _displayedPokemonList.postValue(fetchedList); // Cập nhật danh sách chính
+                    _displayedPokemonList.postValue(fetchedList); // Update the main list
                     _isLoading.postValue(false);
                 }
                 @Override

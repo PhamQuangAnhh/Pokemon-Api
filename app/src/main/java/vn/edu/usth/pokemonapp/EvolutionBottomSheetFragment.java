@@ -70,12 +70,11 @@ public class EvolutionBottomSheetFragment extends BottomSheetDialogFragment {
 
     private void fetchEvolutionDetails(List<String> names) {
         for (String name : names) {
-            // ĐÂY LÀ ĐOẠN CODE ĐÃ ĐƯỢC SỬA LẠI ĐÚNG CÚ PHÁP
             repository.fetchPokemonDetails(name, new PokemonRepository.PokemonCallback() {
                 @Override
                 public void onSuccess(Pokemon pokemon) {
                     if (getActivity() != null) {
-                        // Cập nhật giao diện trên luồng chính (UI Thread)
+                        // Update the UI on the main thread (UI Thread)
                         getActivity().runOnUiThread(() -> {
                             evolutionDetailsList.add(pokemon);
                             adapter.notifyItemInserted(evolutionDetailsList.size() - 1);
